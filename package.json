@@ -41,6 +41,7 @@
   "dependencies": {
     "@progress/kendo-react-animation": "^12.1.0",
     "@progress/kendo-react-buttons": "^12.1.0",
+    "@progress/kendo-react-charts": "^12.1.0",
     "@progress/kendo-react-data-tools": "^12.1.0",
     "@progress/kendo-react-dateinputs": "^12.1.0",
     "@progress/kendo-react-dialogs": "^12.1.0",

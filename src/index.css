@@ -1,4 +1,4 @@
-@import "@progress/kendo-theme-default/dist/all.css";
+﻿@import "@progress/kendo-theme-default/dist/all.css";
 
 html,
 body,
@@ -72,3 +72,225 @@ body {
   margin: 0.5rem 0 0;
   font-size: 0.95rem;
 }
+
+.dashboard-tile {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.02));
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-card__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metric-card__icon {
+  font-size: 1rem;
+  color: #0a65cc;
+}
+
+.metric-card__title {
+  font-size: 0.8rem;
+}
+
+.metric-card__value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.metric-card__helper {
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.metric-card__change {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.metric-card__change--up {
+  color: #15803d;
+}
+
+.metric-card__change--down {
+  color: #b91c1c;
+}
+
+.performance-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.performance-panel__row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.performance-panel__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.performance-panel__label-primary {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.performance-panel__label-secondary {
+  font-size: 0.8rem;
+}
+
+.performance-panel__progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.performance-panel__percent-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.65);
+  min-width: 3ch;
+  text-align: right;
+}
+
+.runtime-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.runtime-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.runtime-card__item {
+  background: rgba(15, 23, 42, 0.03);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.runtime-card__item--wide {
+  grid-column: span 2;
+}
+
+.runtime-card__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(15, 23, 42, 0.55);
+}
+
+.runtime-card__value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.runtime-card__helper {
+  font-size: 0.75rem;
+  color: rgba(15, 23, 42, 0.55);
+}
+
+.activity-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+.tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  margin-bottom: 16px;
+}
+
+.tile-header__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.tile-header__subtitle {
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.tile-header__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dashboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.dashboard-list__primary {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dashboard-list__secondary {
+  font-size: 0.8rem;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+@media (max-width: 768px) {
+  .app-shell__content {
+    padding: 16px;
+  }
+
+  .metric-card__value {
+    font-size: 1.6rem;
+  }
+}
+
