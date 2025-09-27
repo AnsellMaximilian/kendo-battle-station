@@ -18,6 +18,10 @@ export const CHANNELS = {
     "dashboard",
     ["GET_LAYOUT", "SAVE_LAYOUT", "GET_SYSTEM_METRICS"] as const,
   ),
+  CLIPBOARD: makeChannels(
+    "clipboard",
+    ["GET_HISTORY", "COPY", "DELETE", "UPSERT", "OCR_IMAGE", "SET_TAGS"] as const,
+  ),
 } as const;
 
 type ValueOf<T> = T[keyof T];
