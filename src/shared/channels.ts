@@ -22,6 +22,17 @@ export const CHANNELS = {
     "clipboard",
     ["GET_HISTORY", "COPY", "DELETE", "UPSERT", "OCR_IMAGE", "SET_TAGS"] as const,
   ),
+  POMODORO: makeChannels(
+    "pomodoro",
+    [
+      "GET_STATE",
+      "UPDATE_SETTINGS",
+      "CONTROL",
+      "GET_HISTORY",
+      "CLEAR_HISTORY",
+      "STATE_EVENT",
+    ] as const,
+  ),
 } as const;
 
 type ValueOf<T> = T[keyof T];

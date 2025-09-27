@@ -58,6 +58,42 @@ export interface ClipUpsert {
   ocrText?: string | null;
 }
 
+export type PomodoroPhase = "idle" | "focus" | "shortBreak" | "longBreak";
+
+export interface PomodoroSettings {
+  focusMinutes: number;
+  shortBreakMinutes: number;
+  longBreakMinutes: number;
+  cyclesBeforeLongBreak: number;
+  autoStartNext: boolean;
+  soundEnabled: boolean;
+  notificationsEnabled: boolean;
+}
+
+export interface PomodoroState {
+  phase: PomodoroPhase;
+  cycle: number;
+  totalCycles: number;
+  remainingSeconds: number;
+  durationSeconds: number;
+  running: boolean;
+  settings: PomodoroSettings;
+  updatedAt: number;
+  completedSessions: number;
+}
+
+export interface PomodoroSessionSummary {
+  id: string;
+  phase: PomodoroPhase;
+  startedAt: number;
+  endedAt: number;
+  durationSeconds: number;
+}
+
+export interface PomodoroControlPayload {
+  command: "start" | "pause" | "resume" | "skip" | "reset";
+}
+
 export type AppAPI = {
   versions: {
     node: string;
@@ -76,6 +112,14 @@ export type AppAPI = {
     upsert: (clip: ClipUpsert) => Promise<string>;
     ocrImage: (id: string) => Promise<void>;
     setTags: (id: string, tags: string[]) => Promise<void>;
+  };
+  pomodoro: {
+    getState: () => Promise<PomodoroState>;
+    updateSettings: (settings: PomodoroSettings) => Promise<void>;
+    control: (payload: PomodoroControlPayload) => Promise<void>;
+    onStateChanged: (listener: (state: PomodoroState) => void) => () => void;
+    getHistory: () => Promise<PomodoroSessionSummary[]>;
+    clearHistory: () => Promise<void>;
   };
   example: {
     exampleOne: () => Promise<string>;

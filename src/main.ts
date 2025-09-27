@@ -4,6 +4,7 @@ import started from "electron-squirrel-startup";
 
 import "./main/dashboard-ipc";
 import { initializeClipboardFeature } from "./main/clipboard";
+import { initializePomodoroFeature } from "./main/pomodoro";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -36,8 +37,9 @@ const createWindow = () => {
 app.whenReady().then(async () => {
   try {
     await initializeClipboardFeature(app);
+    await initializePomodoroFeature(app);
   } catch (error) {
-    console.error("Failed to initialize clipboard feature", error);
+    console.error("Failed to initialize background features", error);
   }
 });
 
