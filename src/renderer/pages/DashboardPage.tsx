@@ -1,6 +1,12 @@
-﻿import { useMemo } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { TileLayout, TileLayoutItem } from "@progress/kendo-react-layout";
+import {
+  TabStrip,
+  TabStripSelectEventArguments,
+  TabStripTab,
+  TileLayout,
+  TileLayoutRepositionEvent,
+} from "@progress/kendo-react-layout";
 import { Button } from "@progress/kendo-react-buttons";
 
 import {
@@ -20,9 +26,21 @@ import {
   RecentActivityGrid,
   type ActivityItem,
 } from "../components/dashboard/RecentActivityGrid";
-import type { AppAPI } from "../../shared/types";
+import type {
+  DashboardLayoutPosition,
+  SystemMetrics,
+} from "../../shared/types";
 
-const metrics: MetricCardProps[] = [
+const defaultPositions: DashboardLayoutPosition[] = [
+  { order: 0, col: 1, row: 1, colSpan: 6, rowSpan: 2 },
+  { order: 1, col: 7, row: 1, colSpan: 3, rowSpan: 1 },
+  { order: 2, col: 7, row: 2, colSpan: 3, rowSpan: 1 },
+  { order: 3, col: 10, row: 1, colSpan: 3, rowSpan: 2 },
+  { order: 4, col: 1, row: 3, colSpan: 8, rowSpan: 3 },
+  { order: 5, col: 9, row: 3, colSpan: 4, rowSpan: 3 },
+];
+
+const appMetricCards: MetricCardProps[] = [
   {
     title: "Clips captured",
     value: "128",
@@ -49,6 +67,13 @@ const metrics: MetricCardProps[] = [
     value: "99.9%",
     helperText: "Indexed assets available",
     icon: "database",
+  },
+  {
+    title: "Focus streak",
+    value: "6",
+    helperText: "Sessions completed today",
+    icon: "clock",
+    change: { trend: "up", label: "+2 vs goal" },
   },
 ];
 
@@ -86,6 +111,80 @@ const roadmapItems = [
   },
 ];
 
+const toNumber = (value: unknown, fallback: number | undefined) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  return fallback;
+};
+
+const sanitizePositions = (
+  input: readonly Partial<DashboardLayoutPosition>[],
+  fallback: readonly DashboardLayoutPosition[]
+): DashboardLayoutPosition[] =>
+  fallback.map((base, index) => {
+    const match = input.find((candidate) => candidate.order === base.order);
+    const candidate = match ?? input[index] ?? {};
+    return {
+      order: base.order,
+      col: toNumber(candidate.col, base.col) ?? base.col,
+      row: toNumber(candidate.row, base.row),
+      colSpan: toNumber(candidate.colSpan, base.colSpan),
+      rowSpan: toNumber(candidate.rowSpan, base.rowSpan),
+    };
+  });
+
+const formatBytes = (bytes: number | undefined) => {
+  if (!bytes || bytes <= 0) {
+    return "0 B";
+  }
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  const precision = value >= 10 ? 0 : 1;
+  return `${value.toFixed(precision)} ${units[unitIndex]}`;
+};
+
+const formatDuration = (seconds: number | undefined) => {
+  if (!seconds) {
+    return "0s";
+  }
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  if (hrs > 0) {
+    return `${hrs}h ${mins}m`;
+  }
+  if (mins > 0) {
+    return `${mins}m ${secs}s`;
+  }
+  return `${secs}s`;
+};
+
+const formatRelativeTime = (timestamp: number | undefined) => {
+  if (!timestamp) {
+    return "waiting for metrics";
+  }
+  const delta = Date.now() - timestamp;
+  if (delta < 1000) {
+    return "updated just now";
+  }
+  const seconds = Math.floor(delta / 1000);
+  if (seconds < 60) {
+    return `updated ${seconds}s ago`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `updated ${minutes}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  return `updated ${hours}h ago`;
+};
+
 const toPlatformLabel = () => {
   const nav = navigator as Navigator & {
     userAgentData?: { platform?: string };
@@ -96,10 +195,6 @@ const toPlatformLabel = () => {
     return `${platform} | ${ua}`;
   }
   return ua;
-};
-
-const getRuntimeBridge = (): AppAPI | undefined => {
-  return (globalThis as typeof globalThis & { api?: AppAPI }).api;
 };
 
 const TileHeader = ({
@@ -121,15 +216,74 @@ const TileHeader = ({
 );
 
 export const DashboardPage = () => {
-  const runtimeInfo = useMemo(() => {
-    const api = getRuntimeBridge();
-    return {
-      electron: api?.versions.electron,
-      chrome: api?.versions.chrome,
-      node: api?.versions.node,
-      platformLabel: toPlatformLabel(),
+  const [positions, setPositions] =
+    useState<DashboardLayoutPosition[]>(defaultPositions);
+  const [metricsTab, setMetricsTab] = useState(0);
+  const [systemMetrics, setSystemMetrics] = useState<
+    SystemMetrics | undefined
+  >();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stored = await window.api.dashboard.getLayout();
+        if (!cancelled && stored && stored.length > 0) {
+          setPositions(sanitizePositions(stored, defaultPositions));
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard layout", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchMetrics = async () => {
+      try {
+        const metrics = await window.api.dashboard.getSystemMetrics();
+        if (!cancelled) {
+          setSystemMetrics(metrics);
+        }
+      } catch (error) {
+        console.error("Failed to load system metrics", error);
+      }
+    };
+
+    fetchMetrics();
+    const interval = window.setInterval(fetchMetrics, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const persistLayout = useCallback(
+    (value: readonly Partial<DashboardLayoutPosition>[]) => {
+      setPositions((current) => {
+        const baseline =
+          current.length === defaultPositions.length
+            ? current
+            : defaultPositions;
+        const next = sanitizePositions(value, baseline);
+        void window.api.dashboard.saveLayout(next).catch((error) => {
+          console.error("Failed to persist dashboard layout", error);
+        });
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleReposition = useCallback(
+    (event: TileLayoutRepositionEvent) => {
+      persistLayout(event.value as DashboardLayoutPosition[]);
+    },
+    [persistLayout]
+  );
 
   const timeFormatter = useMemo(
     () =>
@@ -175,32 +329,141 @@ export const DashboardPage = () => {
     ];
   }, [timeFormatter]);
 
-  const tileItems = useMemo<TileLayoutItem[]>(
+  const runtimeInfo = useMemo(
+    () => ({
+      electron: window.api.versions.electron,
+      chrome: window.api.versions.chrome,
+      node: window.api.versions.node,
+      platformLabel: toPlatformLabel(),
+    }),
+    []
+  );
+
+  const systemMetricCards = useMemo<MetricCardProps[]>(() => {
+    if (!systemMetrics) {
+      return [
+        {
+          title: "CPU usage",
+          value: "--",
+          helperText: "Collecting samples",
+          icon: "graph",
+        },
+        {
+          title: "Memory usage",
+          value: "--",
+          helperText: "Collecting samples",
+          icon: "memory",
+        },
+        {
+          title: "App footprint",
+          value: "--",
+          helperText: "Collecting samples",
+          icon: "application-window",
+        },
+        {
+          title: "System uptime",
+          value: "--",
+          helperText: "Collecting samples",
+          icon: "time",
+        },
+      ];
+    }
+
+    return [
+      {
+        title: "CPU usage",
+        value: `${systemMetrics.cpu.usagePercent.toFixed(1)}%`,
+        helperText: `${systemMetrics.cpu.cores} logical cores`,
+        icon: "graph",
+      },
+      {
+        title: "Memory usage",
+        value: `${systemMetrics.memory.usagePercent.toFixed(1)}%`,
+        helperText: `${formatBytes(systemMetrics.memory.used)} of ${formatBytes(systemMetrics.memory.total)}`,
+        icon: "memory",
+      },
+      {
+        title: "App footprint",
+        value: `${formatBytes(systemMetrics.appMemory.rss)}`,
+        helperText: `${formatBytes(systemMetrics.appMemory.heap)} heap in use`,
+        icon: "application-window",
+      },
+      {
+        title: "System uptime",
+        value: formatDuration(systemMetrics.uptimeSeconds),
+        helperText: systemMetrics.loadAverage
+          ? `1m load avg ${systemMetrics.loadAverage.toFixed(2)}`
+          : "Load average unavailable",
+        icon: "time",
+      },
+    ];
+  }, [systemMetrics]);
+
+  const systemPerformanceMetrics = useMemo<PerformanceMetric[]>(() => {
+    if (!systemMetrics) {
+      return [
+        { id: "cpu", label: "CPU usage", value: 0, goal: 100 },
+        { id: "memory", label: "Memory usage", value: 0, goal: 100 },
+      ];
+    }
+    return [
+      {
+        id: "cpu",
+        label: "CPU usage",
+        value: Number(systemMetrics.cpu.usagePercent.toFixed(1)),
+        goal: 100,
+      },
+      {
+        id: "memory",
+        label: "Memory usage",
+        value: Number(systemMetrics.memory.usagePercent.toFixed(1)),
+        goal: 100,
+      },
+    ];
+  }, [systemMetrics]);
+
+  const metricsTabs = useMemo(
+    () => [
+      { id: "app", title: "Battle Station", metrics: appMetricCards },
+      { id: "system", title: "System", metrics: systemMetricCards },
+    ],
+    [systemMetricCards]
+  );
+
+  const tileItems = useMemo(
     () => [
       {
-        order: 0,
-        colSpan: 6,
-        rowSpan: 2,
         header: (
           <TileHeader
-            title="Key insights"
-            subtitle="Snapshots across clipboard, storage, and focus"
+            title="Insights overview"
+            subtitle="Switch between application and host metrics"
           />
         ),
         body: (
           <div className="dashboard-tile">
-            <div className="metrics-grid">
-              {metrics.map((metric) => (
-                <MetricCard key={metric.title} {...metric} />
+            <TabStrip
+              selected={metricsTab}
+              onSelect={(event: TabStripSelectEventArguments) =>
+                setMetricsTab(event.selected)
+              }
+            >
+              {metricsTabs.map((tab) => (
+                <TabStripTab key={tab.id} title={tab.title}>
+                  <div className="metrics-grid">
+                    {tab.metrics.map((metric) => (
+                      <MetricCard
+                        key={`${tab.id}-${metric.title}`}
+                        {...metric}
+                      />
+                    ))}
+                  </div>
+                </TabStripTab>
               ))}
-            </div>
+            </TabStrip>
           </div>
         ),
       },
       {
-        order: 1,
-        colSpan: 3,
-        rowSpan: 2,
         header: (
           <TileHeader
             title="Runtime overview"
@@ -214,9 +477,6 @@ export const DashboardPage = () => {
         ),
       },
       {
-        order: 2,
-        colSpan: 3,
-        rowSpan: 2,
         header: (
           <TileHeader
             title="Focus performance"
@@ -239,9 +499,35 @@ export const DashboardPage = () => {
         ),
       },
       {
-        order: 3,
-        colSpan: 8,
-        rowSpan: 3,
+        header: (
+          <TileHeader
+            title="System health"
+            subtitle={formatRelativeTime(systemMetrics?.timestamp)}
+            actions={
+              <Button
+                size="small"
+                icon="refresh"
+                onClick={() =>
+                  window.api.dashboard
+                    .getSystemMetrics()
+                    .then(setSystemMetrics)
+                    .catch((error) => {
+                      console.error("Failed to refresh system metrics", error);
+                    })
+                }
+              >
+                Refresh
+              </Button>
+            }
+          />
+        ),
+        body: (
+          <div className="dashboard-tile">
+            <PerformancePanel metrics={systemPerformanceMetrics} />
+          </div>
+        ),
+      },
+      {
         header: (
           <TileHeader
             title="Latest activity"
@@ -265,9 +551,6 @@ export const DashboardPage = () => {
         ),
       },
       {
-        order: 4,
-        colSpan: 4,
-        rowSpan: 3,
         header: (
           <TileHeader
             title="Upcoming milestones"
@@ -294,17 +577,25 @@ export const DashboardPage = () => {
         ),
       },
     ],
-    [activityItems, runtimeInfo]
+    [
+      activityItems,
+      metricsTab,
+      metricsTabs,
+      runtimeInfo,
+      systemMetrics?.timestamp,
+      systemPerformanceMetrics,
+    ]
   );
 
   return (
     <TileLayout
-      id="SWAGGER"
       columns={12}
       rowHeight={140}
       gap={{ columns: 16, rows: 16 }}
-      items={[tileItems[tileItems.length - 3]]}
+      items={tileItems}
+      positions={positions}
       style={{ minHeight: "70vh" }}
+      onReposition={handleReposition}
     />
   );
 };

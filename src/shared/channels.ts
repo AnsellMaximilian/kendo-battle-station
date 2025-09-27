@@ -1,6 +1,6 @@
-export function makeChannels<T extends readonly string[]>(
+﻿export function makeChannels<T extends readonly string[]>(
   feature: string,
-  actions: T
+  actions: T,
 ) {
   type Action = T[number];
   const out = {} as Record<Action, string>;
@@ -14,6 +14,13 @@ export function makeChannels<T extends readonly string[]>(
 
 export const CHANNELS = {
   PROJECT: makeChannels("example", ["EXAMPLE_ONE", "EXAMPLE_TWO"] as const),
+  DASHBOARD: makeChannels(
+    "dashboard",
+    ["GET_LAYOUT", "SAVE_LAYOUT", "GET_SYSTEM_METRICS"] as const,
+  ),
 } as const;
 
-export type Channel = (typeof CHANNELS.PROJECT)[keyof typeof CHANNELS.PROJECT];
+type ValueOf<T> = T[keyof T];
+export type Channel = ValueOf<{
+  [K in keyof typeof CHANNELS]: ValueOf<(typeof CHANNELS)[K]>;
+}>;

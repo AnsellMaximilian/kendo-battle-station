@@ -21,7 +21,9 @@ const formatPercent = (value: number, goal: number) => {
 export const PerformancePanel = ({ metrics }: PerformancePanelProps) => (
   <div className="performance-panel">
     {metrics.map((metric) => {
-      const percent = metric.goal ? Math.min((metric.value / metric.goal) * 100, 100) : 0;
+      const percent = metric.goal
+        ? Math.min((metric.value / metric.goal) * 100, 100)
+        : 0;
       return (
         <div key={metric.id} className="performance-panel__row">
           <div className="performance-panel__label">
@@ -30,11 +32,12 @@ export const PerformancePanel = ({ metrics }: PerformancePanelProps) => (
               {metric.value} / {metric.goal}
             </span>
           </div>
-          <ProgressBar
-            value={percent}
-            label={formatPercent(metric.value, metric.goal)}
-            animation={true}
-          />
+          <div className="performance-panel__progress">
+            <ProgressBar value={percent} animation={true} labelVisible={false} />
+            <span className="performance-panel__percent-text">
+              {formatPercent(metric.value, metric.goal)}
+            </span>
+          </div>
         </div>
       );
     })}

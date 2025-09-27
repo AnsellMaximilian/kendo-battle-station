@@ -294,3 +294,16 @@ body {
   }
 }
 
+.dashboard-tile .k-tabstrip {
+  background: transparent;
+  border-width: 0;
+}
+
+.dashboard-tile .k-tabstrip .k-tabstrip-items {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-tile .k-tabstrip .k-tabstrip-content {
+  padding: 16px 0 0;
+  background: transparent;
+}
