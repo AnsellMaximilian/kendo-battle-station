@@ -33,6 +33,10 @@ export const CHANNELS = {
       "STATE_EVENT",
     ] as const,
   ),
+  FLOATING_TIMER: makeChannels(
+    "floating-timer",
+    ["GET_STATE", "UPDATE_SETTINGS", "CONTROL", "STATE_EVENT"] as const,
+  ),
 } as const;
 
 type ValueOf<T> = T[keyof T];

@@ -94,6 +94,34 @@ export interface PomodoroControlPayload {
   command: "start" | "pause" | "resume" | "skip" | "reset";
 }
 
+export type TimerMode = "countdown" | "countup";
+
+export interface FloatingTimerSettings {
+  mode: TimerMode;
+  durationSeconds: number;
+  alwaysOnTop: boolean;
+  clickThrough: boolean;
+  rememberPosition: boolean;
+  theme: "light" | "dark";
+}
+
+export interface FloatingTimerState {
+  running: boolean;
+  elapsedSeconds: number;
+  remainingSeconds: number;
+  durationSeconds: number;
+  mode: TimerMode;
+  updatedAt: number;
+  position: { x: number; y: number } | null;
+  visible: boolean;
+}
+
+export interface FloatingTimerControlPayload {
+  command: "start" | "pause" | "resume" | "reset" | "toggle";
+  durationSeconds?: number;
+  mode?: TimerMode;
+}
+
 export type AppAPI = {
   versions: {
     node: string;
@@ -120,6 +148,12 @@ export type AppAPI = {
     onStateChanged: (listener: (state: PomodoroState) => void) => () => void;
     getHistory: () => Promise<PomodoroSessionSummary[]>;
     clearHistory: () => Promise<void>;
+  };
+  floatingTimer: {
+    getState: () => Promise<FloatingTimerState>;
+    updateSettings: (settings: FloatingTimerSettings) => Promise<void>;
+    control: (payload: FloatingTimerControlPayload) => Promise<void>;
+    onStateChanged: (listener: (state: FloatingTimerState) => void) => () => void;
   };
   example: {
     exampleOne: () => Promise<string>;
